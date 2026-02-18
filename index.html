@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto de Venta Moderno</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9', // Sky 500
+                            600: '#0284c7', // Sky 600
+                            900: '#0c4a6e', // Sky 900
+                        },
+                        izipay: '#ff004d', // Approximate Izipay Red
+                        yape: '#742384',   // Yape Purple
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for product list */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        @media print {
+            @page {
+                margin: 0;
+            }
+
+            body {
+                margin: 0;
+                padding: 0.5cm;
+            }
+
+            #app section,
+            #app aside,
+            #successModal,
+            header {
+                display: none !important;
+            }
+
+            #receipt {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-slate-800 font-sans h-screen flex flex-col md:flex-row overflow-hidden" id="app">
+
+    <!-- Left Section: Product Entry & List -->
+    <section class="flex-1 flex flex-col h-full p-4 md:p-6 gap-4 md:gap-6 overflow-y-auto print:hidden">
+
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-1 md:mb-2 shrink-0">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">Sistema POS <span
+                        class="text-brand-500">Pro</span></h1>
+                <p class="text-slate-500 text-xs md:text-sm">Registro de Venta</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="ventas.html"
+                    class="flex items-center gap-2 text-xs font-medium text-slate-600 hover:text-brand-600 transition bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">
+                    <i class="fas fa-history"></i> <span class="hidden sm:inline">Historial</span>
+                </a>
+                <div class="bg-brand-50 text-brand-600 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap">
+                    <i class="fas fa-circle text-[8px] mr-1 animate-pulse"></i> En Línea
+                </div>
+            </div>
+        </header>
+
+        <!-- Product Form -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-5 shrink-0">
+            <h2 class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-3 md:mb-4">Agregar Producto</h2>
+            <form id="productForm" class="grid grid-cols-12 gap-2 md:gap-3 items-end">
+                <div class="col-span-12 md:col-span-5">
+                    <label class="block text-xs font-medium text-slate-700 mb-1 ml-1" for="productName">Producto /
+                        Servicio</label>
+                    <div class="relative">
+                        <div
+                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i class="fas fa-box-open"></i>
+                        </div>
+                        <input type="text" id="productName" placeholder="Ej. Coca Cola 1L"
+                            class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-sm font-medium"
+                            required autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="col-span-4 md:col-span-2">
+                    <label class="block text-xs font-medium text-slate-700 mb-1 ml-1" for="productQty">Cant.</label>
+                    <input type="number" id="productQty" min="1" value="1"
+                        class="w-full text-center py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition text-sm font-bold"
+                        required>
+                </div>
+
+                <div class="col-span-5 md:col-span-3">
+                    <label class="block text-xs font-medium text-slate-700 mb-1 ml-1" for="productPrice">Precio
+                        Unit.</label>
+                    <div class="relative">
+                        <div
+                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <span class="text-xs">S/</span>
+                        </div>
+                        <input type="number" id="productPrice" step="0.10" placeholder="0.00"
+                            class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition text-sm font-bold"
+                            required>
+                    </div>
+                </div>
+
+                <div class="col-span-3 md:col-span-2">
+                    <button type="submit"
+                        class="w-full bg-slate-900 hover:bg-black text-white py-2.5 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-slate-200">
+                        <i class="fas fa-plus text-xs"></i> <span class="hidden md:inline">Agregar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Product List -->
+        <div
+            class="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col flex-1 overflow-hidden min-h-[200px]">
+            <div class="p-4 border-b border-slate-50 flex justify-between items-center bg-white z-10 sticky top-0">
+                <h3 class="font-semibold text-slate-800 flex items-center gap-2 text-sm md:text-base">
+                    <i class="fas fa-list-ul text-brand-500"></i> Canasta
+                    <span id="itemCount"
+                        class="bg-brand-100 text-brand-600 text-[10px] px-2 py-0.5 rounded-full font-bold">0
+                        items</span>
+                </h3>
+                <button onclick="clearCart()"
+                    class="text-xs text-red-500 hover:text-red-700 font-medium transition flex items-center gap-1">
+                    <i class="far fa-trash-alt"></i> Vaciar
+                </button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 p-0 custom-scrollbar">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-slate-500 uppercase bg-slate-50/50 sticky top-0 backdrop-blur-sm z-0">
+                        <tr>
+                            <th class="px-2 md:px-4 py-3 font-medium">Producto</th>
+                            <th class="px-2 md:px-4 py-3 font-medium text-center">Cant.</th>
+                            <th class="px-2 md:px-4 py-3 font-medium text-right hidden sm:table-cell">Precio</th>
+                            <th class="px-2 md:px-4 py-3 font-medium text-right">Total</th>
+                            <th class="px-2 md:px-4 py-3 text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cartTableBody" class="divide-y divide-slate-50">
+                        <!-- Items will be injected here -->
+                        <tr id="emptyState">
+                            <td colspan="5" class="py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center gap-3">
+                                    <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-shopping-basket text-2xl text-slate-300"></i>
+                                    </div>
+                                    <p>La canasta está vacía</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Right Section: Payment & Summary -->
+    <aside
+        class="md:w-[400px] w-full bg-white border-l border-slate-100 flex flex-col shadow-2xl relative z-20 shrink-0 h-[400px] md:h-auto print:hidden">
+
+        <!-- Order Summary Top -->
+        <div class="p-6 bg-slate-900 text-white pb-24 md:pb-32 relative overflow-hidden shrink-0">
+            <!-- Decorative circles -->
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-brand-500 rounded-full opacity-20 blur-3xl"></div>
+            <div class="absolute top-20 -left-10 w-32 h-32 bg-purple-500 rounded-full opacity-20 blur-3xl"></div>
+
+            <h2 class="text-slate-300 text-xs uppercase tracking-widest font-semibold mb-1">Total a Pagar</h2>
+            <div class="flex items-baseline gap-1">
+                <span class="text-2xl font-light opacity-80">S/</span>
+                <span id="displayTotal" class="text-4xl md:text-5xl font-bold tracking-tight">0.00</span>
+            </div>
+        </div>
+
+        <!-- Payment Methods Container (Overlapping) -->
+        <div class="flex-1 px-4 md:px-6  pb-6 overflow-y-auto">
+
+            <!-- Cards Container -->
+            <div class="bg-white rounded-2xl shadow-xl p-4 md:p-6 border border-slate-100 mb-4 md:mb-6">
+                <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="far fa-credit-card text-slate-400"></i> Método de Pago
+                </h3>
+
+                <div class="grid grid-cols-3 gap-2 md:gap-3 mb-6">
+                    <button onclick="setPaymentMethod('cash')" id="btn-cash"
+                        class="payment-btn active group flex flex-col items-center justify-center p-2 md:p-3 rounded-xl border-2 transition-all duration-200 border-brand-500 bg-brand-50 text-brand-700">
+                        <i
+                            class="fas fa-coins text-lg md:text-xl mb-1 md:mb-2 group-hover:scale-110 transition-transform"></i>
+                        <span class="text-[9px] md:text-[10px] font-bold">Efectivo</span>
+                    </button>
+                    <button onclick="setPaymentMethod('izipay')" id="btn-izipay"
+                        class="payment-btn group flex flex-col items-center justify-center p-2 md:p-3 rounded-xl border-2 border-slate-100 hover:border-izipay hover:bg-red-50 text-slate-500 hover:text-izipay transition-all duration-200">
+                        <i
+                            class="fas fa-credit-card text-lg md:text-xl mb-1 md:mb-2 group-hover:scale-110 transition-transform"></i>
+                        <span class="text-[9px] md:text-[10px] font-bold">Izipay</span>
+                    </button>
+                    <button onclick="setPaymentMethod('yape')" id="btn-yape"
+                        class="payment-btn group flex flex-col items-center justify-center p-2 md:p-3 rounded-xl border-2 border-slate-100 hover:border-yape hover:bg-purple-50 text-slate-500 hover:text-yape transition-all duration-200">
+                        <i
+                            class="fas fa-qrcode text-lg md:text-xl mb-1 md:mb-2 group-hover:scale-110 transition-transform"></i>
+                        <span class="text-[9px] md:text-[10px] font-bold">Yape</span>
+                    </button>
+                </div>
+
+                <!-- DYNAMIC CONTENT SECTIONS -->
+
+                <!-- 1. Cash Section -->
+                <div id="section-cash" class="payment-section space-y-4">
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-500">Monto Recibido</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">S/</span>
+                            <input type="number" id="cashAmount" step="0.10"
+                                class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-bold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:bg-white outline-none transition"
+                                placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div class="p-3 md:p-4 bg-slate-900 rounded-xl text-white flex justify-between items-center">
+                        <span class="text-sm font-medium text-slate-300">Vuelto</span>
+                        <span id="displayChange" class="text-xl md:text-2xl font-bold text-brand-400">S/ 0.00</span>
+                    </div>
+                </div>
+
+                <!-- 2. Izipay Section -->
+                <div id="section-izipay" class="payment-section hidden space-y-4">
+                    <div class="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 mb-2">
+                        <div
+                            class="w-8 h-8 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 shadow-sm text-izipay">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-red-600 font-bold uppercase">Tarjeta Izipay</p>
+                            <p class="text-[10px] text-red-400">Cobrar al cliente con el POS</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-500">Código de Autorización (4 dígitos)</label>
+                        <input type="text" id="izipayCode" maxlength="4"
+                            class="w-full text-center tracking-[1em] font-mono py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-bold text-slate-800 focus:ring-2 focus:ring-izipay focus:bg-white outline-none transition uppercase"
+                            placeholder="0000">
+                    </div>
+                </div>
+
+                <!-- 3. Yape Section -->
+                <div id="section-yape" class="payment-section hidden space-y-4">
+                    <div class="p-3 bg-purple-50 border border-purple-100 rounded-xl flex items-center gap-3 mb-2">
+                        <div
+                            class="w-8 h-8 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 shadow-sm text-yape">
+                            <i class="fas fa-qrcode"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-yape font-bold uppercase">Yape Izipay</p>
+                            <p class="text-[10px] text-purple-400">Escanear QR y verificar pago</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-500">Código de Operación (últimos 4)</label>
+                        <input type="text" id="yapeCode" maxlength="4"
+                            class="w-full text-center tracking-[1em] font-mono py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-bold text-slate-800 focus:ring-2 focus:ring-yape focus:bg-white outline-none transition uppercase"
+                            placeholder="0000">
+                    </div>
+                </div>
+
+            </div>
+
+            <button onclick="processSale()"
+                class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 md:py-4 rounded-xl shadow-lg shadow-brand-200 transition transform active:scale-95 flex items-center justify-center gap-2 text-base md:text-lg">
+                <i class="fas fa-check-circle"></i> Confirmar Venta
+            </button>
+        </div>
+    </aside>
+
+    <!-- Modal for Success (Hidden by default) -->
+    <div id="successModal"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 print:hidden">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center transform scale-90 transition-transform duration-300 mx-4"
+            id="modalContent">
+            <div
+                class="w-16 h-16 md:w-20 md:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-green-500 text-3xl md:text-4xl">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-2">¡Venta Exitosa!</h2>
+            <p class="text-slate-500 mb-6 text-sm">La operación se ha guardado correctamente.</p>
+
+            <div class="bg-slate-50 rounded-xl p-4 mb-6 text-left">
+                <div class="flex justify-between text-sm mb-2">
+                    <span class="text-slate-500">Total</span>
+                    <span class="font-bold text-slate-800" id="modalTotal">S/ 0.00</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-500">Método</span>
+                    <span class="font-bold text-slate-800 capitalize" id="modalMethod">Efectivo</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="printReceipt()"
+                    class="w-full bg-white border border-slate-200 text-slate-700 font-medium py-3 rounded-xl hover:bg-slate-50 transition flex items-center justify-center gap-2">
+                    <i class="fas fa-print"></i> Ticket
+                </button>
+                <button onclick="closeModal()"
+                    class="w-full bg-slate-900 text-white font-medium py-3 rounded-xl hover:bg-black transition">
+                    Nueva Venta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Receipt for Printing -->
+    <div id="receipt" class="hidden print:block p-4 font-mono text-xs w-[300px] mx-auto bg-white text-black">
+        <div class="text-center mb-4 border-b border-black pb-2 border-dashed">
+            <h1 class="text-lg font-bold uppercase mb-1">Plaza Autoservicios Humaya</h1>
+            <p class="mb-1">RUC: 20600000001</p>
+            <p class="mb-1">Dirección: Av. Principal 123</p>
+            <p id="receiptDate">Fecha: 01/01/2026 10:00 AM</p>
+        </div>
+
+        <div class="mb-4 border-b border-black pb-2 border-dashed">
+            <table class="w-full text-left">
+                <thead>
+                    <tr>
+                        <th class="w-8">Can</th>
+                        <th>Desc</th>
+                        <th class="text-right">P.U</th>
+                        <th class="text-right">Tot</th>
+                    </tr>
+                </thead>
+                <tbody id="receiptItems">
+                    <!-- Items go here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="text-right mb-4">
+            <p class="font-bold text-sm">TOTAL: <span id="receiptTotal">S/ 0.00</span></p>
+            <p class="text-[10px]" id="receiptMethod">EFECTIVO</p>
+            <p class="text-[10px]" id="receiptChange"></p>
+        </div>
+
+        <div class="text-center text-[10px]">
+            <p>¡GRACIAS POR SU COMPRA!</p>
+            <p>Vuelva pronto</p>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // State
+        let cart = [];
+        let currentPaymentMethod = 'cash'; // 'cash', 'izipay', 'yape'
+
+        // DOM Elements
+        const form = document.getElementById('productForm');
+        const cartTableBody = document.getElementById('cartTableBody');
+        const emptyState = document.getElementById('emptyState');
+        const displayTotal = document.getElementById('displayTotal');
+        const itemCount = document.getElementById('itemCount');
+        const cashInput = document.getElementById('cashAmount');
+        const displayChange = document.getElementById('displayChange');
+
+        // Add Product
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('productName').value;
+            const qty = parseFloat(document.getElementById('productQty').value);
+            const price = parseFloat(document.getElementById('productPrice').value);
+
+            if (!name || isNaN(qty) || isNaN(price)) return;
+
+            const product = {
+                id: Date.now(),
+                name,
+                qty,
+                price,
+                total: qty * price
+            };
+
+            cart.push(product);
+            renderCart();
+            form.reset();
+            document.getElementById('productQty').value = 1;
+            document.getElementById('productName').focus();
+        });
+
+        // Render Cart
+        function renderCart() {
+            // Remove all current rows (except empty state, which we handle by visibility)
+            // Easier: clear innerHTML and rebuild
+            cartTableBody.innerHTML = '';
+
+            if (cart.length === 0) {
+                cartTableBody.appendChild(emptyState);
+                itemCount.textContent = '0 items';
+                updateTotals(0);
+                return;
+            }
+
+            let total = 0;
+            let count = 0;
+
+            cart.forEach((item, index) => {
+                total += item.total;
+                count += item.qty; // or just item count
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/50 transition duration-150 group';
+                tr.innerHTML = `
+                    <td class="px-2 md:px-4 py-3 font-medium text-slate-800">${item.name}</td>
+                    <td class="px-2 md:px-4 py-3 text-center text-slate-600">${item.qty}</td>
+                    <td class="px-2 md:px-4 py-3 text-right text-slate-600 hidden sm:table-cell">S/ ${item.price.toFixed(2)}</td>
+                    <td class="px-2 md:px-4 py-3 text-right font-bold text-slate-800">S/ ${item.total.toFixed(2)}</td>
+                    <td class="px-2 md:px-4 py-3 text-center">
+                        <button onclick="removeProduct(${index})" class="text-slate-300 hover:text-red-500 transition p-1 rounded-md hover:bg-red-50">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                `;
+                cartTableBody.appendChild(tr);
+            });
+
+            itemCount.textContent = `${cart.length} items`;
+            updateTotals(total);
+        }
+
+        // Remove Product
+        window.removeProduct = (index) => {
+            cart.splice(index, 1);
+            renderCart();
+        };
+
+        window.clearCart = () => {
+            if (confirm('¿Estás seguro de vaciar la canasta?')) {
+                cart = [];
+                renderCart();
+            }
+        };
+
+        // Update Totals
+        function updateTotals(total) {
+            displayTotal.textContent = total.toFixed(2);
+            calculateChange(); // Recalculate change if total updates
+        }
+
+        // Calculations
+        function getCartTotal() {
+            return cart.reduce((sum, item) => sum + item.total, 0);
+        }
+
+        // Payment Method Switching
+        window.setPaymentMethod = (method) => {
+            currentPaymentMethod = method; // Update state
+
+            // Update UI Buttons
+            document.querySelectorAll('.payment-btn').forEach(btn => {
+                // Reset basic styles
+                btn.className = 'payment-btn group flex flex-col items-center justify-center p-2 md:p-3 rounded-xl border-2 border-slate-100 text-slate-500 transition-all duration-200';
+
+                // Add hover specific classes based on ID to maintain hover logic or simplify
+                if (btn.id === 'btn-cash') btn.classList.add('hover:border-brand-500', 'hover:bg-brand-50', 'hover:text-brand-600');
+                if (btn.id === 'btn-izipay') btn.classList.add('hover:border-izipay', 'hover:bg-red-50', 'hover:text-izipay');
+                if (btn.id === 'btn-yape') btn.classList.add('hover:border-yape', 'hover:bg-purple-50', 'hover:text-yape');
+            });
+
+            // Set Active Style
+            const activeBtn = document.getElementById(`btn-${method}`);
+            activeBtn.classList.remove('border-slate-100', 'text-slate-500');
+
+            if (method === 'cash') {
+                activeBtn.classList.add('border-brand-500', 'bg-brand-50', 'text-brand-700');
+            } else if (method === 'izipay') {
+                activeBtn.classList.add('border-izipay', 'bg-red-50', 'text-izipay');
+            } else if (method === 'yape') {
+                activeBtn.classList.add('border-yape', 'bg-purple-50', 'text-yape');
+            }
+
+            // Toggle Sections
+            document.querySelectorAll('.payment-section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`section-${method}`).classList.remove('hidden');
+
+            // Focus appropriate input
+            if (method === 'cash') setTimeout(() => document.getElementById('cashAmount').focus(), 100);
+            if (method === 'izipay') setTimeout(() => document.getElementById('izipayCode').focus(), 100);
+            if (method === 'yape') setTimeout(() => document.getElementById('yapeCode').focus(), 100);
+        };
+
+        // Cash Change Logic
+        cashInput.addEventListener('input', calculateChange);
+
+        function calculateChange() {
+            const total = getCartTotal();
+            const cash = parseFloat(cashInput.value) || 0;
+            const change = cash - total;
+
+            if (change < 0) {
+                displayChange.textContent = "Falta S/ " + Math.abs(change).toFixed(2);
+                displayChange.classList.add('text-red-500');
+                displayChange.classList.remove('text-brand-400');
+            } else {
+                displayChange.textContent = "S/ " + change.toFixed(2);
+                displayChange.classList.remove('text-red-500');
+                displayChange.classList.add('text-brand-400');
+            }
+        }
+
+        // Process Sale
+        window.processSale = () => {
+            const total = getCartTotal();
+            if (total === 0) {
+                alert("Agrega productos a la canasta primero.");
+                return;
+            }
+
+            let saleDetails = {};
+
+            // Validation per method
+            if (currentPaymentMethod === 'cash') {
+                const cash = parseFloat(cashInput.value) || 0;
+                if (cash < total) {
+                    alert(`El monto recibido es insuficiente. Faltan S/ ${(total - cash).toFixed(2)}`);
+                    cashInput.focus();
+                    return;
+                }
+                saleDetails = {
+                    paid: cash.toFixed(2),
+                    change: (cash - total).toFixed(2)
+                };
+            } else if (currentPaymentMethod === 'izipay') {
+                const code = document.getElementById('izipayCode').value;
+                if (code.length !== 4) {
+                    alert("Ingresa los 4 dígitos del código de autorización.");
+                    document.getElementById('izipayCode').focus();
+                    return;
+                }
+                saleDetails = { code };
+            } else if (currentPaymentMethod === 'yape') {
+                const code = document.getElementById('yapeCode').value;
+                if (code.length !== 4) {
+                    alert("Ingresa los últimos 4 dígitos del código de operación.");
+                    document.getElementById('yapeCode').focus();
+                    return;
+                }
+                saleDetails = { code };
+            }
+
+            // Save Sale
+            saveSale(total, saleDetails);
+
+            // Prepare Receipt Data
+            prepareReceipt(total);
+
+            // Success Animation
+            showSuccessModal(total);
+        };
+
+        function saveSale(total, details) {
+            const sale = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString('es-PE'),
+                items: JSON.parse(JSON.stringify(cart)), // Deep copy
+                total: total,
+                method: currentPaymentMethod,
+                details: details
+            };
+
+            const history = JSON.parse(localStorage.getItem('pos_sales')) || [];
+            history.push(sale);
+            localStorage.setItem('pos_sales', JSON.stringify(history));
+        }
+
+        function prepareReceipt(total) {
+            // Date
+            const now = new Date();
+            document.getElementById('receiptDate').textContent = "Fecha: " + now.toLocaleString('es-PE');
+
+            // Items
+            const tbody = document.getElementById('receiptItems');
+            tbody.innerHTML = '';
+            cart.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.qty}</td>
+                    <td>${item.name}</td>
+                    <td class="text-right">${item.price.toFixed(2)}</td>
+                    <td class="text-right">${item.total.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Totals
+            document.getElementById('receiptTotal').textContent = "S/ " + total.toFixed(2);
+
+            let methodText = "";
+            let changeText = "";
+
+            if (currentPaymentMethod === 'cash') {
+                const cash = parseFloat(cashInput.value) || 0;
+                const change = cash - total;
+                methodText = "PAGO EFECTIVO: S/ " + cash.toFixed(2);
+                changeText = "VUELTO: S/ " + change.toFixed(2);
+            } else {
+                methodText = "PAGO " + currentPaymentMethod.toUpperCase();
+                if (currentPaymentMethod === 'izipay') methodText += " (REF: " + document.getElementById('izipayCode').value + ")";
+                if (currentPaymentMethod === 'yape') methodText += " (REF: " + document.getElementById('yapeCode').value + ")";
+                changeText = "";
+            }
+
+            document.getElementById('receiptMethod').textContent = methodText;
+            document.getElementById('receiptChange').textContent = changeText;
+        }
+
+        window.printReceipt = () => {
+            window.print();
+        };
+
+        function showSuccessModal(total) {
+            const modal = document.getElementById('successModal');
+            const content = document.getElementById('modalContent');
+
+            document.getElementById('modalTotal').textContent = "S/ " + total.toFixed(2);
+            document.getElementById('modalMethod').textContent = currentPaymentMethod;
+
+            modal.classList.remove('hidden');
+            // Trigger reflow
+            void modal.offsetWidth;
+
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-90');
+            content.classList.add('scale-100');
+        }
+
+        window.closeModal = () => {
+            const modal = document.getElementById('successModal');
+
+            modal.classList.add('opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                // Reset App
+                cart = [];
+                renderCart();
+                document.getElementById('cashAmount').value = '';
+                document.getElementById('izipayCode').value = '';
+                document.getElementById('yapeCode').value = '';
+                setPaymentMethod('cash');
+                calculateChange();
+            }, 300);
+        };
+
+        // Initialize defaults
+        setPaymentMethod('cash');
+
+    </script>
+</body>
+
+</html>

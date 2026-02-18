@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Ventas - POS System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-50 text-slate-800 font-sans min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900">Historial de Ventas</h1>
+                <p class="text-slate-500">Registro completo de transacciones</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="clearHistory()"
+                    class="px-4 py-2 bg-red-100 text-red-600 rounded-xl font-medium hover:bg-red-200 transition text-sm">
+                    <i class="far fa-trash-alt mr-2"></i> Borrar Historial
+                </button>
+                <a href="index.html"
+                    class="px-6 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-black transition flex items-center shadow-lg shadow-slate-200">
+                    <i class="fas fa-arrow-left mr-2"></i> Volver al POS
+                </a>
+            </div>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-xl">
+                        <i class="fas fa-shopping-bag"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-500 text-xs uppercase font-bold tracking-wider">Ventas Totales</p>
+                        <h3 class="text-2xl font-bold text-slate-800" id="totalSalesCount">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-xl">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-500 text-xs uppercase font-bold tracking-wider">Ingresos Totales</p>
+                        <h3 class="text-2xl font-bold text-slate-800" id="totalRevenue">S/ 0.00</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-xl">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-500 text-xs uppercase font-bold tracking-wider">Ticket Promedio</p>
+                        <h3 class="text-2xl font-bold text-slate-800" id="averageTicket">S/ 0.00</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                        <tr>
+                            <th class="px-6 py-4">Fecha / Hora</th>
+                            <th class="px-6 py-4">Productos</th>
+                            <th class="px-6 py-4 text-center">Método</th>
+                            <th class="px-6 py-4 text-right">Total</th>
+                            <th class="px-6 py-4 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTableBody" class="divide-y divide-slate-50 text-sm">
+                        <!-- Rows injected via JS -->
+                        <tr id="emptyState" class="hidden">
+                            <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                                <i class="fas fa-inbox text-4xl mb-3 block opacity-30"></i>
+                                No hay ventas registradas aún.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div id="detailsModal"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden m-4 transform scale-95 transition-transform duration-200"
+            id="detailsContent">
+            <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold">Detalle de Venta</h3>
+                <button onclick="closeDetails()" class="text-slate-400 hover:text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 max-h-[70vh] overflow-y-auto">
+                <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-4">
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase">Fecha</p>
+                        <p class="font-medium text-slate-800" id="detailDate">--</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-slate-500 uppercase">Método</p>
+                        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold" id="detailMethod">--</span>
+                    </div>
+                </div>
+
+                <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Productos</h4>
+                <ul class="space-y-2 mb-6" id="detailItems">
+                    <!-- Items -->
+                </ul>
+
+                <div
+                    class="flex justify-between items-center text-lg font-bold text-slate-900 pt-4 border-t border-slate-100">
+                    <span>Total</span>
+                    <span id="detailTotal">S/ 0.00</span>
+                </div>
+                <div id="detailExtra" class="mt-2 text-right text-xs text-slate-500 space-y-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load data on start
+        let sales = JSON.parse(localStorage.getItem('pos_sales')) || [];
+
+        function renderSales() {
+            const tbody = document.getElementById('salesTableBody');
+            const emptyState = document.getElementById('emptyState');
+            tbody.innerHTML = '';
+
+            if (sales.length === 0) {
+                tbody.appendChild(emptyState);
+                emptyState.classList.remove('hidden');
+                updateStats();
+                return;
+            }
+
+            // Sort by date desc
+            sales.sort((a, b) => b.id - a.id).forEach(sale => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+
+                const methodColors = {
+                    'cash': 'bg-brand-50 text-brand-600',
+                    'izipay': 'bg-red-50 text-red-600',
+                    'yape': 'bg-purple-50 text-purple-600'
+                };
+                const methodLabels = {
+                    'cash': 'Efectivo',
+                    'izipay': 'Izipay',
+                    'yape': 'Yape'
+                };
+
+                const itemCount = sale.items.reduce((acc, item) => acc + item.qty, 0);
+                const itemsSummary = sale.items.map(i => `${i.qty} x ${i.name}`).join(', ').substring(0, 50) + (sale.items.length > 2 ? '...' : '');
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-slate-900">${sale.date}</div>
+                        <div class="text-xs text-slate-400">${new Date(sale.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-slate-800 font-medium">${itemCount} items</div>
+                        <div class="text-xs text-slate-500 truncate max-w-[200px]" title="${itemsSummary}">${itemsSummary}</div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="px-2 py-1 rounded text-xs font-bold uppercase ${methodColors[sale.method] || 'bg-gray-100'}">
+                            ${methodLabels[sale.method] || sale.method}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right font-bold text-slate-900">
+                        S/ ${sale.total.toFixed(2)}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="viewDetails(${sale.id})" class="text-slate-400 hover:text-brand-600 transition p-2">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateStats();
+        }
+
+        function updateStats() {
+            const totalRevenue = sales.reduce((sum, sale) => sum + sale.total, 0);
+            const avgTicket = sales.length ? totalRevenue / sales.length : 0;
+
+            document.getElementById('totalSalesCount').innerText = sales.length;
+            document.getElementById('totalRevenue').innerText = "S/ " + totalRevenue.toFixed(2);
+            document.getElementById('averageTicket').innerText = "S/ " + avgTicket.toFixed(2);
+        }
+
+        function viewDetails(id) {
+            const sale = sales.find(s => s.id === id);
+            if (!sale) return;
+
+            document.getElementById('detailDate').innerText = sale.date + ' ' + new Date(sale.id).toLocaleTimeString();
+
+            const methodEl = document.getElementById('detailMethod');
+            const methodColors = {
+                'cash': 'bg-brand-50 text-brand-600',
+                'izipay': 'bg-red-50 text-red-600',
+                'yape': 'bg-purple-50 text-purple-600'
+            };
+            methodEl.className = `inline-block px-2 py-0.5 rounded text-xs font-bold uppercase ${methodColors[sale.method]}`;
+            methodEl.innerText = sale.method;
+
+            const itemsList = document.getElementById('detailItems');
+            itemsList.innerHTML = '';
+            sale.items.forEach(item => {
+                itemsList.innerHTML += `
+                    <li class="flex justify-between text-sm">
+                        <span><span class="font-bold">${item.qty}</span> x ${item.name}</span>
+                        <span class="text-slate-600">S/ ${item.total.toFixed(2)}</span>
+                    </li>
+                `;
+            });
+
+            document.getElementById('detailTotal').innerText = "S/ " + sale.total.toFixed(2);
+
+            // Extra details
+            const extraDiv = document.getElementById('detailExtra');
+            extraDiv.innerHTML = '';
+            if (sale.method === 'cash' && sale.details?.change) {
+                extraDiv.innerHTML = `<div>Pagado: S/ ${sale.details.paid}</div><div class="text-green-600 font-bold">Vuelto: S/ ${sale.details.change}</div>`;
+            } else if (sale.details?.code) {
+                extraDiv.innerHTML = `<div>Código Ref: ${sale.details.code}</div>`;
+            }
+
+            const modal = document.getElementById('detailsModal');
+            const content = document.getElementById('detailsContent');
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }
+
+        function closeDetails() {
+            const modal = document.getElementById('detailsModal');
+            const content = document.getElementById('detailsContent');
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        function clearHistory() {
+            if (confirm("¿Estás seguro de BORRAR todo el historial de ventas? Esta acción no se puede deshacer.")) {
+                localStorage.removeItem('pos_sales');
+                sales = [];
+                renderSales();
+            }
+        }
+
+        // Init
+        renderSales();
+
+    </script>
+</body>
+
+</html>
