@@ -198,7 +198,9 @@
         cerrarModal();
     });
 
-    document.addEventListener('DOMContentLoaded', renderTable);
+    document.addEventListener('DOMContentLoaded', () => {
+        renderTable(products);
+    });
 
 
 

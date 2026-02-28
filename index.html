@@ -118,13 +118,18 @@
                     <label class="block text-xs font-medium text-slate-700 mb-1 ml-1" for="productName">Producto /
                         Servicio</label>
                     <div class="relative">
-                        <div
-                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                            <i class="fas fa-box-open"></i>
-                        </div>
+
                         <input type="text" id="productName" placeholder="Ej. Coca Cola 1L"
-                            class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-sm font-medium"
+                            class="w-full pl-3 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-sm font-medium"
                             required autocomplete="off">
+                        <div
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                            <i class="fas fa-search"></i>
+                        </div>
+                    </div>
+                    <div id="productOptions"
+                        class="absolute z-10    bg-white border border-slate-200 rounded-xl shadow-lg">
+                        <ul id="productOptionsList"></ul>
                     </div>
                 </div>
 
@@ -410,6 +415,53 @@
         const itemCount = document.getElementById('itemCount');
         const cashInput = document.getElementById('cashAmount');
         const displayChange = document.getElementById('displayChange');
+
+        // Products Database (typically loaded from localStorage or shared state)
+        const availableProducts = JSON.parse(localStorage.getItem('products')) || [];
+        const productOptions = document.getElementById('productOptions');
+        const productOptionsList = document.getElementById('productOptionsList');
+        const productNameInput = document.getElementById('productName');
+        const productPriceInput = document.getElementById('productPrice');
+
+        productOptions.style.display = 'none';
+
+        productNameInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            if (!query) {
+                productOptions.style.display = 'none';
+                return;
+            }
+
+            const matches = availableProducts.filter(p => p.name.toLowerCase().includes(query));
+
+            if (matches.length > 0) {
+                productOptionsList.innerHTML = matches.map(p =>
+                    `<li class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm border-b border-slate-100 last:border-0">${p.name}</li>`
+                ).join('');
+                productOptions.style.display = 'block';
+            } else {
+                productOptions.style.display = 'none';
+            }
+        });
+
+        productOptionsList.addEventListener('click', (e) => {
+            if (e.target.tagName === 'LI') {
+                const selectedName = e.target.textContent;
+                const product = availableProducts.find(p => p.name === selectedName);
+                if (product) {
+                    productNameInput.value = product.name;
+                    productPriceInput.value = product.price;
+                }
+                productOptions.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!productOptions.contains(e.target) && e.target !== productNameInput) {
+                productOptions.style.display = 'none';
+            }
+        });
+
 
         // Add Product
         form.addEventListener('submit', (e) => {
