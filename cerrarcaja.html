@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cerrar Caja</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-50 text-slate-800 font-sans min-h-screen p-4 md:p-8">
+    <section class="max-w-6xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-slate-900">Cerrar Caja</h1>
+                <p class="text-slate-500">Cierre de caja</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="index.html"
+                    class="px-6 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-black transition flex items-center shadow-lg shadow-slate-200">
+                    <i class="fas fa-arrow-left mr-2"></i> Volver al POS
+                </a>
+                <button onclick="cerrarCaja()"
+                    class="px-6 py-2 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition flex items-center shadow-lg shadow-slate-200">
+                    <i class="fas fa-check mr-2"></i> Cerrar Caja
+                </button>
+            </div>
+        </header>
+    </section>
+    <section>
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-xl font-bold text-slate-900 mb-4">
+                RESUMEN
+            </h1>
+
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                    <tr>
+                        <th class="px-6 py-4">Fecha / Hora</th>
+                        <th class="px-6 py-4">Productos</th>
+                        <th class="px-6 py-4 text-center">Método</th>
+                        <th class="px-6 py-4 text-right">Total</th>
+                        <th class="px-6 py-4 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="salesTableBody" class="divide-y divide-slate-50 text-sm">
+                    <tr id="emptyState" class="hidden">
+                        <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                            <i class="fas fa-inbox text-4xl mb-3 block opacity-30"></i>
+                            No hay ventas registradas aún.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <script>
+
+        let ventas = JSON.parse(localStorage.getItem('pos_sales')) || [];
+
+        function renderSales() {
+            const tbody = document.getElementById('salesTableBody');
+            const emptyState = document.getElementById('emptyState');
+            tbody.innerHTML = '';
+
+            if (ventas.length === 0) {
+                tbody.appendChild(emptyState);
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            // Sort by date desc
+            ventas.sort((a, b) => b.id - a.id).forEach(sale => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+
+                const methodColors = {
+                    'cash': 'bg-brand-50 text-brand-600',
+                    'izipay': 'bg-red-50 text-red-600',
+                    'yape': 'bg-purple-50 text-purple-600'
+                };
+                const methodLabels = {
+                    'cash': 'Efectivo',
+                    'izipay': 'Izipay',
+                    'yape': 'Yape'
+                };
+
+                const itemCount = sale.items.reduce((acc, item) => acc + item.qty, 0);
+                const itemsSummary = sale.items.map(i => `${i.qty} x ${i.name}`).join(', ').substring(0, 50) + (sale.items.length > 2 ? '...' : '');
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-slate-900">${sale.date}</div>
+                        <div class="text-xs text-slate-400">${new Date(sale.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-slate-800 font-medium">${itemCount} items</div>
+                        <div class="text-xs text-slate-500 truncate max-w-[200px]" title="${itemsSummary}">${itemsSummary}</div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="px-2 py-1 rounded text-xs font-bold uppercase ${methodColors[sale.method] || 'bg-gray-100'}">
+                            ${methodLabels[sale.method] || sale.method}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right max-md:text-xs font-bold text-slate-900">
+                        S/ ${sale.total.toFixed(2)}
+                    </td>
+                    <td class="px-6 py-4 flex text-center">
+                        <button onclick="viewDetails(${sale.id})" class="text-slate-400 hover:text-brand-600 transition p-2">
+                            <i class="far fa-eye"></i>
+                        </button>
+                        <button onclick="viewFact(${sale.id})" class="text-slate-400 hover:text-brand-600 transition p-2">  <i class="fa-solid fa-file"></i> </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+        }
+
+
+        renderSales();
+
+    </script>
+
+</body>
