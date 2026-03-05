@@ -418,16 +418,18 @@
 
     <!-- Scanner Modal -->
     <div id="scannerModal"
-        class="fixed hidden inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4 print:hidden">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg overflow-y-auto max-h-screen">
-            <h2 class="text-lg font-semibold mb-4 text-slate-800">Escanear Código de Barras</h2>
+        style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px;box-sizing:border-box;">
+        <div
+            style="background:#fff;border-radius:12px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;">
+            <h2 style="font-size:16px;font-weight:600;margin-bottom:16px;color:#1e293b;">Escanear Código de Barras</h2>
             <div
-                class="w-full rounded-lg overflow-hidden relative bg-black aspect-video flex items-center justify-center">
-                <video id="reader-video" class="w-full h-auto max-h-[60vh] object-contain"></video>
+                style="width:100%;background:#000;border-radius:8px;overflow:hidden;position:relative;aspect-ratio:16/9;">
+                <video id="reader-video" style="width:100%;height:100%;object-fit:cover;display:block;" playsinline
+                    autoplay muted></video>
             </div>
-            <div class="flex justify-end mt-4">
+            <div style="display:flex;justify-content:flex-end;margin-top:16px;">
                 <button type="button" onclick="cerrarScannerPOS()"
-                    class="px-4 py-2 bg-slate-200 text-slate-600 rounded-md hover:bg-slate-300 transition">Cancelar</button>
+                    style="padding:8px 16px;background:#e2e8f0;color:#475569;border:none;border-radius:8px;cursor:pointer;font-size:14px;">Cancelar</button>
             </div>
         </div>
     </div>
@@ -622,7 +624,7 @@
             });
 
             // Set Active Style
-            const activeBtn = document.getElementById(`btn - ${method} `);
+            const activeBtn = document.getElementById(`btn-${method}`);
             activeBtn.classList.remove('border-slate-100', 'text-slate-500');
 
             if (method === 'cash') {
@@ -635,7 +637,7 @@
 
             // Toggle Sections
             document.querySelectorAll('.payment-section').forEach(sec => sec.classList.add('hidden'));
-            document.getElementById(`section - ${method} `).classList.remove('hidden');
+            document.getElementById(`section-${method}`).classList.remove('hidden');
 
             // Focus appropriate input
             if (method === 'cash') setTimeout(() => document.getElementById('cashAmount').focus(), 100);
@@ -827,86 +829,105 @@
                 window.location.href = 'login.html';
             }
         }
+        // Escáner de código de barras
+        let codeReader = null;
+        let activeStream = null;
+
         detectlogoudesdeindex();
         // Initialize defaults
         setPaymentMethod('cash');
-
-        // Escáner de código de barras
-        let codeReader = null;
 
         function abrirScannerPOS(event) {
             if (event) event.preventDefault();
 
             const modal = document.getElementById('scannerModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            modal.style.display = 'flex';
 
-            if (!codeReader) {
-                codeReader = new ZXing.BrowserMultiFormatReader();
+            // Reset reader each time
+            if (codeReader) {
+                codeReader.reset();
+                codeReader = null;
             }
 
-            codeReader.listVideoInputDevices()
-                .then((videoInputDevices) => {
-                    if (videoInputDevices.length > 0) {
-                        let selectedDeviceId = videoInputDevices[0].deviceId;
-                        // Intentar usar la cámara trasera si está en un celular
-                        if (videoInputDevices.length > 1) {
-                            const backCamera = videoInputDevices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('trasera'));
-                            if (backCamera) {
-                                selectedDeviceId = backCamera.deviceId;
+            // Stop any existing stream
+            if (activeStream) {
+                activeStream.getTracks().forEach(t => t.stop());
+                activeStream = null;
+            }
+
+            // Request camera permission explicitly using getUserMedia
+            // This always triggers the browser permission dialog on mobile
+            const constraints = {
+                video: {
+                    facingMode: { ideal: 'environment' },  // prefer back camera
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: false
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then((stream) => {
+                    activeStream = stream;
+                    const videoEl = document.getElementById('reader-video');
+                    videoEl.srcObject = stream;
+                    videoEl.play();
+
+                    codeReader = new ZXing.BrowserMultiFormatReader();
+
+                    codeReader.decodeFromStream(stream, videoEl, (result, err) => {
+                        if (result) {
+                            const decodedText = result.text;
+                            cerrarScannerPOS();
+
+                            const product = availableProducts.find(p => String(p.id) === String(decodedText));
+                            if (product) {
+                                seleccionarpaquete(product.name, product.price, product.package, product.stock);
+                                document.getElementById('productQty').focus();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Producto Encontrado',
+                                    text: product.name,
+                                    timer: 1000,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'No encontrado',
+                                    text: 'El código "' + decodedText + '" no existe en el inventario.',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
                             }
                         }
-
-                        codeReader.decodeFromVideoDevice(selectedDeviceId, 'reader-video', (result, err) => {
-                            if (result) {
-                                const decodedText = result.text;
-                                cerrarScannerPOS();
-
-                                const product = availableProducts.find(p => String(p.id) === String(decodedText));
-                                if (product) {
-                                    seleccionarpaquete(product.name, product.price, product.package, product.stock);
-
-                                    document.getElementById('productQty').focus();
-
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Producto Encontrado',
-                                        text: product.name,
-                                        timer: 1000,
-                                        showConfirmButton: false
-                                    });
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'No encontrado',
-                                        text: 'El producto con el código "' + decodedText + '" no existe en el inventario.',
-                                        timer: 2000,
-                                        showConfirmButton: false
-                                    });
-                                }
-                            }
-                            if (err && !(err instanceof ZXing.NotFoundException)) {
-                                // Ignore
-                            }
-                        });
-                    } else {
-                        Swal.fire('Error', 'No se encontraron cámaras en el dispositivo.', 'error');
-                        cerrarScannerPOS();
-                    }
+                        if (err && !(err instanceof ZXing.NotFoundException)) {
+                            // Ignore continuous scan errors
+                        }
+                    });
                 })
                 .catch((err) => {
-                    console.error(err);
-                    Swal.fire('Error', 'No se pudo acceder a la cámara. Revisa los permisos.', 'error');
+                    console.error('Camera error:', err);
                     cerrarScannerPOS();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Sin acceso a la cámara',
+                        text: 'Asegúrate de dar permiso a la cámara en tu navegador y que la página usa HTTPS.',
+                        confirmButtonText: 'Entendido'
+                    });
                 });
         }
 
         function cerrarScannerPOS() {
             const modal = document.getElementById('scannerModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            modal.style.display = 'none';
             if (codeReader) {
                 codeReader.reset();
+                codeReader = null;
+            }
+            if (activeStream) {
+                activeStream.getTracks().forEach(t => t.stop());
+                activeStream = null;
             }
         }
 
