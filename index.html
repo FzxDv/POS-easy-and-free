@@ -426,14 +426,17 @@
         const cashInput = document.getElementById('cashAmount');
         const displayChange = document.getElementById('displayChange');
 
-        // Products Database (typically loaded from localStorage or shared state)
+        // Products Database
         const availableProducts = JSON.parse(localStorage.getItem('products')) || [];
         const productOptions = document.getElementById('productOptions');
         const productOptionsList = document.getElementById('productOptionsList');
         const productNameInput = document.getElementById('productName');
         const productPriceInput = document.getElementById('productPrice');
+        const productPackageInput = document.getElementById('productPackage');
+        const productStockInput = document.getElementById('productStock');
         const usuario = document.getElementById('usuario');
-        usuario.innerHTML = localStorage.getItem('usuario');
+
+        if (usuario) usuario.innerHTML = localStorage.getItem('usuario') || '';
         productOptions.style.display = 'none';
 
         productNameInput.addEventListener('input', (e) => {
@@ -447,7 +450,7 @@
 
             if (matches.length > 0) {
                 productOptionsList.innerHTML = matches.map(p =>
-                    `<li class="px-4 py-2 flex hover:bg-slate-50 cursor-pointer text-sm border-b border-slate-100 last:border-0">${p.name}</li>`
+                    `<li class="px-4 py-2 flex items-center gap-4 hover:bg-slate-50 cursor-pointer text-sm border-b border-slate-100 last:border-0" > ${p.name}<span class="bg-blue-500 text-white px-2 py-1 rounded-full font-bold">S/. ${p.price}</span><button onclick="seleccionarpaquete('${p.name}', ${p.price}, ${p.package}, ${p.stock})" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded-full font-bold">PQ: ${p.package}</button><span class="bg-emerald-500 text-white px-2 py-1 rounded-full font-bold">${p.stock}</span></li > `
                 ).join('');
                 productOptions.style.display = 'block';
             } else {
@@ -455,20 +458,40 @@
             }
         });
 
+
+        function seleccionarpaquete(name, price, pkg, stock) {
+            // al seleccionar el boton autocompletar datos pero en el campo de cantidad poner el paquete
+            const productQty = document.getElementById('productQty');
+            if (productQty) productQty.value = pkg;
+            productNameInput.value = name;
+            productPriceInput.value = price;
+            productPackageInput.value = pkg;
+            productStockInput.value = stock;
+            productOptions.style.display = 'none';
+
+        }
+
         productOptionsList.addEventListener('click', (e) => {
             if (e.target.tagName === 'LI') {
-                const selectedName = e.target.textContent;
-                const product = availableProducts.find(p => p.name === selectedName);
-                if (product) {
-                    productNameInput.value = product.name;
-                    productPriceInput.value = product.price;
+                const selectedText = e.target.textContent;
+                const parts = selectedText.split(',');
+                if (parts.length >= 4) {
+                    const name = parts[0].trim();
+                    const price = parts[1].trim();
+                    const pkg = parts[2].trim();
+                    const stock = parts[3].trim();
+
+                    productNameInput.value = name;
+                    productPriceInput.value = price;
+                    productPackageInput.value = pkg;
+                    productStockInput.value = stock;
                 }
                 productOptions.style.display = 'none';
             }
         });
 
         document.addEventListener('click', (e) => {
-            if (!productOptions.contains(e.target) && e.target !== productNameInput) {
+            if (!productOptions.contains(e.target) && e.target !== productNameInput && e.target !== productPriceInput && e.target !== productPackageInput && e.target !== productStockInput) {
                 productOptions.style.display = 'none';
             }
         });
@@ -521,16 +544,16 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/50 transition duration-150 group';
                 tr.innerHTML = `
-                    <td class="px-2 md:px-4 py-3 font-medium text-slate-800">${item.name}</td>
-                    <td class="px-2 md:px-4 py-3 text-center text-slate-600">${item.qty}</td>
-                    <td class="px-2 md:px-4 py-3 text-right text-slate-600 hidden sm:table-cell">S/ ${item.price.toFixed(2)}</td>
-                    <td class="px-2 md:px-4 py-3 text-right font-bold text-slate-800">S/ ${item.total.toFixed(2)}</td>
-                    <td class="px-2 md:px-4 py-3 text-center">
-                        <button onclick="removeProduct(${index})" class="text-slate-300 hover:text-red-500 transition p-1 rounded-md hover:bg-red-50">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </td>
-                `;
+            <td class="px-2 md:px-4 py-3 font-medium text-slate-800">${item.name}</td>
+            <td class="px-2 md:px-4 py-3 text-center text-slate-600">${item.qty}</td>
+            <td class="px-2 md:px-4 py-3 text-right text-slate-600 hidden sm:table-cell">S/ ${item.price.toFixed(2)}</td>
+            <td class="px-2 md:px-4 py-3 text-right font-bold text-slate-800">S/ ${item.total.toFixed(2)}</td>
+            <td class="px-2 md:px-4 py-3 text-center">
+                <button onclick="removeProduct(${index})" class="text-slate-300 hover:text-red-500 transition p-1 rounded-md hover:bg-red-50">
+                    <i class="fas fa-times"></i>
+                </button>
+            </td>
+        `;
                 cartTableBody.appendChild(tr);
             });
 
@@ -578,7 +601,7 @@
             });
 
             // Set Active Style
-            const activeBtn = document.getElementById(`btn-${method}`);
+            const activeBtn = document.getElementById(`btn - ${method} `);
             activeBtn.classList.remove('border-slate-100', 'text-slate-500');
 
             if (method === 'cash') {
@@ -591,7 +614,7 @@
 
             // Toggle Sections
             document.querySelectorAll('.payment-section').forEach(sec => sec.classList.add('hidden'));
-            document.getElementById(`section-${method}`).classList.remove('hidden');
+            document.getElementById(`section - ${method} `).classList.remove('hidden');
 
             // Focus appropriate input
             if (method === 'cash') setTimeout(() => document.getElementById('cashAmount').focus(), 100);
@@ -632,7 +655,7 @@
             if (currentPaymentMethod === 'cash') {
                 const cash = parseFloat(cashInput.value) || 0;
                 if (cash < total) {
-                    alert(`El monto recibido es insuficiente. Faltan S/ ${(total - cash).toFixed(2)}`);
+                    alert(`El monto recibido es insuficiente.Faltan S / ${(total - cash).toFixed(2)} `);
                     cashInput.focus();
                     return;
                 }
@@ -694,7 +717,7 @@
             cart.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${item.qty}</td>
+            < td > ${item.qty}</td >
                     <td>${item.name}</td>
                     <td class="text-right">${item.price.toFixed(2)}</td>
                     <td class="text-right">${item.total.toFixed(2)}</td>
