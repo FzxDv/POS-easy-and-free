@@ -279,46 +279,68 @@
             codeReader = new ZXing.BrowserMultiFormatReader();
         }
 
-        codeReader.decodeFromVideoDevice(null, 'reader-video', (result, err) => {
-            if (result) {
-                const decodedText = result.text;
-                document.getElementById('productCode').value = decodedText;
+        codeReader.listVideoInputDevices()
+            .then((videoInputDevices) => {
+                if (videoInputDevices.length > 0) {
+                    let selectedDeviceId = videoInputDevices[0].deviceId;
+                    // Intentar usar la cámara trasera si está en un celular
+                    if (videoInputDevices.length > 1) {
+                        const backCamera = videoInputDevices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('trasera'));
+                        if (backCamera) {
+                            selectedDeviceId = backCamera.deviceId;
+                        }
+                    }
 
-                cerrarScanner();
+                    codeReader.decodeFromVideoDevice(selectedDeviceId, 'reader-video', (result, err) => {
+                        if (result) {
+                            const decodedText = result.text;
+                            document.getElementById('productCode').value = decodedText;
 
-                const product = products.find(p => p.id === decodedText);
-                if (product) {
-                    document.getElementById('productName').value = product.name || '';
-                    document.getElementById('productPrice').value = product.price || '';
-                    document.getElementById('productStock').value = product.stock || '';
-                    document.getElementById('productPackage').value = product.package || '';
+                            cerrarScanner();
 
-                    const idx = products.findIndex(p => p.id === decodedText);
-                    editingIndex = idx;
-                    document.getElementById('tituloModal').textContent = 'Editar Producto';
-                    document.getElementById('btnSubmit').textContent = 'Actualizar';
+                            const product = products.find(p => String(p.id) === String(decodedText));
+                            if (product) {
+                                document.getElementById('productName').value = product.name || '';
+                                document.getElementById('productPrice').value = product.price || '';
+                                document.getElementById('productStock').value = product.stock || '';
+                                document.getElementById('productPackage').value = product.package || '';
 
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Producto Encontrado',
-                        text: 'Datos cargados para edición.',
-                        timer: 1500,
-                        showConfirmButton: false
+                                const idx = products.findIndex(p => String(p.id) === String(decodedText));
+                                editingIndex = idx;
+                                document.getElementById('tituloModal').textContent = 'Editar Producto';
+                                document.getElementById('btnSubmit').textContent = 'Actualizar';
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Producto Encontrado',
+                                    text: 'Datos cargados para edición.',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Código Nuevo',
+                                    text: 'Puede registrar este nuevo producto.',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+                            }
+                        }
+                        if (err && !(err instanceof ZXing.NotFoundException)) {
+                            // Ignore normally, as the reader continuously reads and fails when there's no barcode
+                        }
                     });
                 } else {
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Código Nuevo',
-                        text: 'Puede registrar este nuevo producto.',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
+                    Swal.fire('Error', 'No se encontraron cámaras en el dispositivo.', 'error');
+                    cerrarScanner();
                 }
-            }
-            if (err && !(err instanceof ZXing.NotFoundException)) {
-                // Ignore normally, as the reader continuously reads and fails when there's no barcode
-            }
-        });
+            })
+            .catch((err) => {
+                console.error(err);
+                Swal.fire('Error', 'No se pudo acceder a la cámara. Revisa los permisos.', 'error');
+                cerrarScanner();
+            });
     }
 
     function cerrarScanner() {
