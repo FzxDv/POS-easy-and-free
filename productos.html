@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -141,7 +141,10 @@
         class="fixed hidden inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
         <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg overflow-y-auto max-h-screen">
             <h2 class="text-lg font-semibold mb-4 text-slate-800">Escanear Código de Barras</h2>
-            <div id="reader" class="w-full"></div>
+            <div
+                class="w-full rounded-lg overflow-hidden relative bg-black aspect-video flex items-center justify-center">
+                <video id="reader-video" class="w-full h-auto max-h-[60vh] object-contain"></video>
+            </div>
             <div class="flex justify-end mt-4">
                 <button type="button" onclick="cerrarScanner()"
                     class="px-4 py-2 bg-slate-200 text-slate-600 rounded-md hover:bg-slate-300 transition">Cancelar</button>
@@ -263,7 +266,7 @@
     }
     detectlogoudesdeindex();
 
-    let html5QrcodeScanner = null;
+    let codeReader = null;
 
     function leerCodigo(event) {
         if (event) event.preventDefault();
@@ -272,63 +275,58 @@
         modal.classList.remove('hidden');
         modal.classList.add('flex');
 
-        function onScanSuccess(decodedText, decodedResult) {
-            document.getElementById('productCode').value = decodedText;
-            cerrarScanner();
+        if (!codeReader) {
+            codeReader = new ZXing.BrowserMultiFormatReader();
+        }
 
-            const product = products.find(p => p.id === decodedText);
-            if (product) {
-                document.getElementById('productName').value = product.name || '';
-                document.getElementById('productPrice').value = product.price || '';
-                document.getElementById('productStock').value = product.stock || '';
-                document.getElementById('productPackage').value = product.package || '';
+        codeReader.decodeFromVideoDevice(null, 'reader-video', (result, err) => {
+            if (result) {
+                const decodedText = result.text;
+                document.getElementById('productCode').value = decodedText;
 
-                const idx = products.findIndex(p => p.id === decodedText);
-                editingIndex = idx;
-                document.getElementById('tituloModal').textContent = 'Editar Producto';
-                document.getElementById('btnSubmit').textContent = 'Actualizar';
+                cerrarScanner();
 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Producto Encontrado',
-                    text: 'Datos cargados para edición.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-            } else {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Código Nuevo',
-                    text: 'Puede registrar este nuevo producto.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
+                const product = products.find(p => p.id === decodedText);
+                if (product) {
+                    document.getElementById('productName').value = product.name || '';
+                    document.getElementById('productPrice').value = product.price || '';
+                    document.getElementById('productStock').value = product.stock || '';
+                    document.getElementById('productPackage').value = product.package || '';
+
+                    const idx = products.findIndex(p => p.id === decodedText);
+                    editingIndex = idx;
+                    document.getElementById('tituloModal').textContent = 'Editar Producto';
+                    document.getElementById('btnSubmit').textContent = 'Actualizar';
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Producto Encontrado',
+                        text: 'Datos cargados para edición.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Código Nuevo',
+                        text: 'Puede registrar este nuevo producto.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
             }
-        }
-
-        function onScanFailure(error) {
-            // Se ignoran los errores de escaneo mientras se busca el código o espera
-        }
-
-        if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "reader",
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                /* verbose= */ false);
-        }
-
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+            if (err && !(err instanceof ZXing.NotFoundException)) {
+                // Ignore normally, as the reader continuously reads and fails when there's no barcode
+            }
+        });
     }
 
     function cerrarScanner() {
         const modal = document.getElementById('scannerModal');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear().catch(error => {
-                console.error("Failed to clear html5QrcodeScanner. ", error);
-            });
-            html5QrcodeScanner = null;
+        if (codeReader) {
+            codeReader.reset();
         }
     }
 </script>
