@@ -297,7 +297,7 @@
                 ? `<div style="margin-top: 8px; border-top: 1px dashed #000; padding-top: 8px;">
                     <div style="display: flex; justify-content: space-between;"><span>Efectivo:</span> <span>S/ ${sale.details.paid}</span></div>
                     <div style="display: flex; justify-content: space-between; font-weight: bold;"><span>Vuelto:</span> <span>S/ ${sale.details.change}</span></div>
-                   </div>`
+                    </div>`
                 : (sale.details?.code ? `<div style="margin-top: 8px; border-top: 1px dashed #000; padding-top: 8px;">Ref: ${sale.details.code}</div>` : '');
 
             printWindow.document.write(`
@@ -347,6 +347,13 @@
                 renderSales();
             }
         }
+
+        function detectlogoudesdeindex() {
+            if (localStorage.getItem('usuario') === null) {
+                window.location.href = 'login.html';
+            }
+        }
+        detectlogoudesdeindex();
 
         // Init
         renderSales();

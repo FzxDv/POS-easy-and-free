@@ -217,6 +217,12 @@
         renderTable(products);
     });
 
+    function detectlogoudesdeindex() {
+        if (localStorage.getItem('usuario') === null) {
+            window.location.href = 'login.html';
+        }
+    }
+    detectlogoudesdeindex();
 
 
 </script>
