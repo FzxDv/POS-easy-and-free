@@ -416,6 +416,22 @@
         </div>
     </div>
 
+    <!-- Scanner Modal -->
+    <div id="scannerModal"
+        class="fixed hidden inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4 print:hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg overflow-y-auto max-h-screen">
+            <h2 class="text-lg font-semibold mb-4 text-slate-800">Escanear Código de Barras</h2>
+            <div
+                class="w-full rounded-lg overflow-hidden relative bg-black aspect-video flex items-center justify-center">
+                <video id="reader-video" class="w-full h-auto max-h-[60vh] object-contain"></video>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button type="button" onclick="cerrarScannerPOS()"
+                    class="px-4 py-2 bg-slate-200 text-slate-600 rounded-md hover:bg-slate-300 transition">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript Logic -->
     <script>
         // State
@@ -896,22 +912,5 @@
 
     </script>
 </body>
-
-<!-- Scanner Modal (Moved strictly outside #app container) -->
-<div id="scannerModal"
-    class="fixed hidden inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[9999] p-4 print:hidden"
-    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg overflow-y-auto max-h-screen relative z-[10000]">
-        <h2 class="text-lg font-semibold mb-4 text-slate-800">Escanear Código de Barras</h2>
-        <div class="w-full rounded-lg overflow-hidden relative bg-black aspect-video flex items-center justify-center">
-            <video id="reader-video" class="w-full h-auto max-h-[60vh] object-contain" playsinline autoplay
-                muted></video>
-        </div>
-        <div class="flex justify-end mt-4">
-            <button type="button" onclick="cerrarScannerPOS()"
-                class="px-4 py-2 bg-slate-200 text-slate-600 rounded-md hover:bg-slate-300 transition">Cancelar</button>
-        </div>
-    </div>
-</div>
 
 </html>
