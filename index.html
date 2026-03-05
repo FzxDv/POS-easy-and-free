@@ -11,6 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
 
     <script>
         tailwind.config = {
@@ -130,12 +132,16 @@
                     <div class="relative">
 
                         <input type="text" id="productName" placeholder="Ej. Coca Cola 1L"
-                            class="w-full pl-3 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-sm font-medium"
+                            class="w-full pl-3 pr-16 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-sm font-medium"
                             required autocomplete="off">
                         <div
-                            class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                            class="absolute inset-y-0 right-8 pr-2 flex items-center pointer-events-none text-slate-400">
                             <i class="fas fa-search"></i>
                         </div>
+                        <button type="button" onclick="abrirScannerPOS(event)"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-brand-500 hover:text-brand-700 transition cursor-pointer">
+                            <i class="fas fa-camera text-lg"></i>
+                        </button>
                     </div>
                     <div id="productOptions"
                         class="absolute z-10    bg-white border border-slate-200 rounded-xl shadow-lg">
@@ -370,6 +376,22 @@
                     class="w-full bg-slate-900 text-white font-medium py-3 rounded-xl hover:bg-black transition">
                     Nueva Venta
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scanner Modal -->
+    <div id="scannerModal"
+        class="fixed hidden inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4 print:hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg overflow-y-auto max-h-screen">
+            <h2 class="text-lg font-semibold mb-4 text-slate-800">Escanear Código de Barras</h2>
+            <div
+                class="w-full rounded-lg overflow-hidden relative bg-black aspect-video flex items-center justify-center">
+                <video id="reader-video" class="w-full h-auto max-h-[60vh] object-contain"></video>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button type="button" onclick="cerrarScannerPOS()"
+                    class="px-4 py-2 bg-slate-200 text-slate-600 rounded-md hover:bg-slate-300 transition">Cancelar</button>
             </div>
         </div>
     </div>
@@ -809,6 +831,63 @@
         detectlogoudesdeindex();
         // Initialize defaults
         setPaymentMethod('cash');
+
+        // Escáner de código de barras
+        let codeReader = null;
+
+        function abrirScannerPOS(event) {
+            if (event) event.preventDefault();
+
+            const modal = document.getElementById('scannerModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserMultiFormatReader();
+            }
+
+            codeReader.decodeFromVideoDevice(null, 'reader-video', (result, err) => {
+                if (result) {
+                    const decodedText = result.text;
+                    cerrarScannerPOS();
+
+                    const product = availableProducts.find(p => String(p.id) === String(decodedText));
+                    if (product) {
+                        seleccionarpaquete(product.name, product.price, product.package, product.stock);
+
+                        document.getElementById('productQty').focus();
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Producto Encontrado',
+                            text: product.name,
+                            timer: 1000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'No encontrado',
+                            text: 'El producto con el código "' + decodedText + '" no existe en el inventario.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }
+                }
+                if (err && !(err instanceof ZXing.NotFoundException)) {
+                    // Ignore
+                }
+            });
+        }
+
+        function cerrarScannerPOS() {
+            const modal = document.getElementById('scannerModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if (codeReader) {
+                codeReader.reset();
+            }
+        }
 
     </script>
 </body>
