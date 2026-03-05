@@ -846,38 +846,60 @@
                 codeReader = new ZXing.BrowserMultiFormatReader();
             }
 
-            codeReader.decodeFromVideoDevice(null, 'reader-video', (result, err) => {
-                if (result) {
-                    const decodedText = result.text;
-                    cerrarScannerPOS();
+            codeReader.listVideoInputDevices()
+                .then((videoInputDevices) => {
+                    if (videoInputDevices.length > 0) {
+                        let selectedDeviceId = videoInputDevices[0].deviceId;
+                        // Intentar usar la cámara trasera si está en un celular
+                        if (videoInputDevices.length > 1) {
+                            const backCamera = videoInputDevices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('trasera'));
+                            if (backCamera) {
+                                selectedDeviceId = backCamera.deviceId;
+                            }
+                        }
 
-                    const product = availableProducts.find(p => String(p.id) === String(decodedText));
-                    if (product) {
-                        seleccionarpaquete(product.name, product.price, product.package, product.stock);
+                        codeReader.decodeFromVideoDevice(selectedDeviceId, 'reader-video', (result, err) => {
+                            if (result) {
+                                const decodedText = result.text;
+                                cerrarScannerPOS();
 
-                        document.getElementById('productQty').focus();
+                                const product = availableProducts.find(p => String(p.id) === String(decodedText));
+                                if (product) {
+                                    seleccionarpaquete(product.name, product.price, product.package, product.stock);
 
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Producto Encontrado',
-                            text: product.name,
-                            timer: 1000,
-                            showConfirmButton: false
+                                    document.getElementById('productQty').focus();
+
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Producto Encontrado',
+                                        text: product.name,
+                                        timer: 1000,
+                                        showConfirmButton: false
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'No encontrado',
+                                        text: 'El producto con el código "' + decodedText + '" no existe en el inventario.',
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    });
+                                }
+                            }
+                            if (err && !(err instanceof ZXing.NotFoundException)) {
+                                // Ignore
+                            }
                         });
                     } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'No encontrado',
-                            text: 'El producto con el código "' + decodedText + '" no existe en el inventario.',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
+                        Swal.fire('Error', 'No se encontraron cámaras en el dispositivo.', 'error');
+                        cerrarScannerPOS();
                     }
-                }
-                if (err && !(err instanceof ZXing.NotFoundException)) {
-                    // Ignore
-                }
-            });
+                })
+                .catch((err) => {
+                    console.error(err);
+                    Swal.fire('Error', 'No se pudo acceder a la cámara. Revisa los permisos.', 'error');
+                    cerrarScannerPOS();
+                });
         }
 
         function cerrarScannerPOS() {
