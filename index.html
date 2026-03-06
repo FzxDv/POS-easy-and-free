@@ -457,75 +457,89 @@
         const productPriceInput = document.getElementById('productPrice');
         const productPackageInput = document.getElementById('productPackage');
         const productStockInput = document.getElementById('productStock');
+        const productCodeInput = document.getElementById('productCode');
         const usuario = document.getElementById('usuario');
 
         if (usuario) usuario.innerHTML = localStorage.getItem('usuario') || '';
         productOptions.style.display = 'none';
 
+        // Buscar producto por nombre o código de barras
         productNameInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
+            const query = e.target.value.toLowerCase().trim();
             if (!query) {
                 productOptions.style.display = 'none';
                 return;
             }
 
-            const matches = availableProducts.filter(p => p.name.toLowerCase().includes(query));
+            const matches = availableProducts.filter(p =>
+                p.name.toLowerCase().includes(query) ||
+                (p.code && p.code.toString().toLowerCase().includes(query)) ||
+                (p.id && p.id.toString().toLowerCase().includes(query))
+            );
 
             if (matches.length > 0) {
-                productOptionsList.innerHTML = matches.map(p =>
-                    `<li class="px-4 py-2 flex items-center gap-4 hover:bg-slate-50 cursor-pointer text-sm border-b border-slate-100 last:border-0" > ${p.name}<span class="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-bold">S/. ${p.price}</span><button onclick="seleccionarpaquete('${p.name}', ${p.price}, ${p.package}, ${p.stock})" class="bg-amber-100 text-amber-600 px-2 py-1 rounded-full text-xs font-bold">PQ: ${p.package}</button><span class="bg-emerald-200 text-emerald-600 px-2 py-1 rounded-full text-xs font-bold">ST: ${p.stock}</span></li > `
-                ).join('');
+                productOptionsList.innerHTML = matches.map(p => {
+                    // Escapar comillas simples en el nombre para evitar romper el HTML
+                    const safeName = p.name.replace(/'/g, "\\'");
+                    return `<li
+                        class="px-4 py-2 flex items-center gap-2 hover:bg-slate-50 cursor-pointer text-sm border-b border-slate-100 last:border-0"
+                        data-name="${p.name.replace(/"/g, '&quot;')}"
+                        data-price="${p.price}"
+                        data-package="${p.package || 1}"
+                        data-stock="${p.stock || 0}"
+                        data-code="${p.code || ''}"
+                    >
+                        <span class="flex-1 font-medium text-slate-800">${p.name}</span>
+                        <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap">S/. ${p.price}</span>
+                        <button type="button" onclick="seleccionarpaquete('${p.name}', ${p.price}, ${p.package}, ${p.stock}, ${p.code})" class="btn-paquete bg-amber-100 text-amber-600 px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap hover:bg-amber-200 transition">PQ: ${p.package || 1}</button>
+                        <span class="bg-emerald-100 text-emerald-600 px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap">ST: ${p.stock || 0}</span>
+                    </li>`;
+                }).join('');
                 productOptions.style.display = 'block';
             } else {
                 productOptions.style.display = 'none';
             }
         });
 
+        // Autocompletar campos con el producto seleccionado
+        function seleccionarProducto(data, usarPaquete) {
+            const qty = usarPaquete ? (parseFloat(data.package) || 1) : 1;
+            productNameInput.value = data.name;
+            productPriceInput.value = data.price;
+            productPackageInput.value = data.package;
+            productStockInput.value = data.stock;
+            productCodeInput.value = data.code;
+            document.getElementById('productQty').value = qty;
+            productOptions.style.display = 'none';
+            productNameInput.focus();
+        }
 
-        function seleccionarpaquete(name, price, pkg, stock) {
-            // al seleccionar el boton autocompletar datos pero en el campo de cantidad poner el paquete
+        // Compatibilidad hacia atrás (escáner usa esta función)
+        function seleccionarpaquete(name, price, pkg, stock, code) {
             const productQty = document.getElementById('productQty');
             if (productQty) productQty.value = pkg;
             productNameInput.value = name;
             productPriceInput.value = price;
             productPackageInput.value = pkg;
             productStockInput.value = stock;
-            productOptions.style.display = 'none';
-
+            productCodeInput.value = code;
         }
 
+        // Un solo listener unificado para clicks en la lista de opciones
         productOptionsList.addEventListener('click', (e) => {
-            if (e.target.tagName === 'LI') {
-                const selectedText = e.target.textContent;
-                const parts = selectedText.split(',');
-                if (parts.length >= 4) {
-                    const name = parts[0].trim();
-                    const price = parts[1].trim();
-                    const pkg = parts[2].trim();
-                    const stock = parts[3].trim();
+            const li = e.target.closest('li');
+            if (!li) return;
 
-                    productNameInput.value = name;
-                    productPriceInput.value = price;
-                    productPackageInput.value = pkg;
-                    productStockInput.value = stock;
-                }
-                productOptions.style.display = 'none';
-            }
-        });
+            const data = {
+                name: li.dataset.name,
+                price: li.dataset.price,
+                package: li.dataset.package,
+                stock: li.dataset.stock,
+                code: li.dataset.code
+            };
 
-        document.addEventListener('click', (e) => {
-            const li = e.target.closest('#productOptionsList li');
-            if (li && !e.target.closest('button')) {
-                const btn = li.querySelector('button');
-                const match = btn?.getAttribute('onclick')?.match(/'([^']+)',\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)/);
-                if (match) {
-                    productNameInput.value = match[1];
-                    productPriceInput.value = match[2];
-                    document.getElementById('productQty').value = 1;
-                    productPackageInput.value = match[3];
-                    productStockInput.value = match[4];
-                }
-            }
+            const esPaquete = e.target.closest('.btn-paquete') !== null;
+            seleccionarProducto(data, esPaquete);
         });
 
         // Add Product
@@ -575,7 +589,7 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/50 transition duration-150 group';
                 tr.innerHTML = `
-            <td class="px-2 md:px-4 py-3 font-medium text-slate-800">${item.name}</td>
+            <td class= "px-2 md:px-4 py-3 font-medium text-slate-800" > ${item.name}</td >
             <td class="px-2 md:px-4 py-3 text-center text-slate-600">${item.qty}</td>
             <td class="px-2 md:px-4 py-3 text-right text-slate-600 hidden sm:table-cell">S/ ${item.price.toFixed(2)}</td>
             <td class="px-2 md:px-4 py-3 text-right font-bold text-slate-800">S/ ${item.total.toFixed(2)}</td>
@@ -748,7 +762,7 @@
             cart.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-            < td > ${item.qty}</td >
+                    <td>${item.qty}</td>
                     <td>${item.name}</td>
                     <td class="text-right">${item.price.toFixed(2)}</td>
                     <td class="text-right">${item.total.toFixed(2)}</td>
@@ -926,6 +940,13 @@
                 });
         }
 
+        // Cerrar dropdown al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (!productNameInput.contains(e.target) && !productOptions.contains(e.target)) {
+                productOptions.style.display = 'none';
+            }
+        });
+
         function cerrarScannerPOS() {
             const modal = document.getElementById('scannerModal');
             modal.style.display = 'none';
@@ -938,6 +959,7 @@
                 activeStream = null;
             }
         }
+
 
     </script>
 </body>
