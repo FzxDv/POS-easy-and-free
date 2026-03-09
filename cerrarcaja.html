@@ -202,6 +202,42 @@
             </div>
         </div>
     </div>
+
+    <!-- modal para elegir el metodo de pago a filtrar -->
+    <div id="filtroModal"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div
+            class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden m-4 transform scale-95 transition-transform duration-200">
+            <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold">Filtrar por Método</h3>
+                <button onclick="cerrarModalFilter()" class="text-slate-400 hover:text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-3">
+                <button onclick="filterByMethod('all')"
+                    class="w-full flex items-center justify-between p-4 rounded-xl border-2 border-slate-100 hover:border-slate-900 hover:bg-slate-50 transition group">
+                    <span class="font-bold text-slate-700">Todos</span>
+                    <i class="fas fa-list text-slate-300 group-hover:text-slate-900"></i>
+                </button>
+                <button onclick="filterByMethod('cash')"
+                    class="w-full flex items-center justify-between p-4 rounded-xl border-2 border-slate-100 hover:border-brand-500 hover:bg-brand-50 transition group">
+                    <span class="font-bold text-slate-700">Efectivo</span>
+                    <i class="fas fa-money-bill-wave text-slate-300 group-hover:text-brand-600"></i>
+                </button>
+                <button onclick="filterByMethod('izipay')"
+                    class="w-full flex items-center justify-between p-4 rounded-xl border-2 border-slate-100 hover:border-red-500 hover:bg-red-50 transition group">
+                    <span class="font-bold text-slate-700">Izipay</span>
+                    <i class="fas fa-credit-card text-slate-300 group-hover:text-red-600"></i>
+                </button>
+                <button onclick="filterByMethod('yape')"
+                    class="w-full flex items-center justify-between p-4 rounded-xl border-2 border-slate-100 hover:border-purple-500 hover:bg-purple-50 transition group">
+                    <span class="font-bold text-slate-700">Yape</span>
+                    <i class="fas fa-mobile-alt text-slate-300 group-hover:text-purple-600"></i>
+                </button>
+            </div>
+        </div>
+    </div>
     <script>
 
         let ventas = JSON.parse(localStorage.getItem('pos_sales')) || [];
@@ -360,6 +396,38 @@
 
         function cerrarModalCerrarCaja() {
             document.getElementById('cerrarcajamodal').classList.add('hidden');
+        }
+
+        function Filtrarpormetodo() {
+            const modal = document.getElementById('filtroModal');
+            const content = modal.querySelector('div');
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }
+
+        function cerrarModalFilter() {
+            const modal = document.getElementById('filtroModal');
+            const content = modal.querySelector('div');
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            content.classList.remove('scale-100');
+            setTimeout(() => modal.classList.add('hidden'), 200);
+        }
+
+
+
+        function filterByMethod(method) {
+            const filteredVentas = method === 'all' ? ventas : ventas.filter(v => v.method === method);
+
+            // Actualizar el total mostrado basado en el filtro
+            const total = filteredVentas.reduce((acc, v) => acc + v.total, 0);
+            document.getElementById('totalcaja').textContent = `S/ ${total.toFixed(2)}`;
+
+            renderSales(filteredVentas);
+            cerrarModalFilter();
         }
     </script>
 
