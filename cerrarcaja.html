@@ -55,6 +55,28 @@
                 RESUMEN
             </h1>
 
+            <!-- filter section -->
+            <section>
+                <div class="flex gap-3">
+                    <input type="date" id="fechaInicio"
+                        class="px-6 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-black transition flex items-center shadow-lg shadow-slate-200">
+                    <input type="date" id="fechaFin"
+                        class="px-6 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-black transition flex items-center shadow-lg shadow-slate-200">
+                    <button onclick="filtrarVentas()"
+                        class="px-6 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-black transition flex items-center shadow-lg shadow-slate-200">
+                        <i class="fas fa-filter mr-2"></i> Filtrar
+                    </button>
+                    <button onclick="limpiarFiltros()"
+                        class="px-6 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-black transition flex items-center shadow-lg shadow-slate-200">
+                        <i class="fas fa-times mr-2"></i> Limpiar
+                    </button>
+                    <button onclick="Filtrarpormetodo()"
+                        class="px-6 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-black transition flex items-center shadow-lg shadow-slate-200">
+                        <i class="fas fa-ticket"></i>
+                    </button>
+                </div>
+            </section>
+
             <table class="w-full text-left   border-collapse">
                 <thead class="bg-slate-50  text-slate-500 text-xs uppercase font-semibold">
                     <tr>
@@ -143,32 +165,41 @@
     </div>
 
     <!-- cerrar cja modal -->
-    <div id="cerrarcajamodal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
+    <div id="cerrarcajamodal"
+        class="fixed w-full h-full inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-50 p-6 rounded-lg shadow-lg w-full max-w-2xl">
             <h2 class="text-lg font-bold mb-4">Cerrar Caja</h2>
             <div class="flex flex-col gap-4">
                 <div>
                     <p class="font-bold">Fecha y Hora:</p>
-                    <p id="detailDate"></p>
+                    <p id="fechaactual" class="text-slate-500"></p>
                 </div>
                 <div>
                     <p class="font-bold">Método de Pago:</p>
-                    <p id="detailMethod"></p>
-                </div>
-                <div>
-                    <p class="font-bold">Productos:</p>
-                    <ul id="detailItems"></ul>
+                    <select
+                        class="w-full py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition text-sm font-bold"
+                        id="metodopago">
+                        <option class="font-semibold" value="cash">Efectivo</option>
+                        <option class="font-semibold" value="izipay">Izipay</option>
+                        <option class="font-semibold" value="yape">Yape</option>
+                    </select>
                 </div>
                 <div>
                     <p class="font-bold">Total:</p>
-                    <p id="detailTotal"></p>
+                    <p id="totalcaja"></p>
                 </div>
                 <div id="detailExtra"></div>
             </div>
-            <button onclick="cerrarModalCerrarCaja()"
-                class="mt-4 px-6 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-black transition flex items-center shadow-lg shadow-slate-200">
-                <i class="fas fa-times mr-2"></i> Cerrar
-            </button>
+            <div class="flex justify-between">
+                <button onclick="cerrarModalCerrarCaja()"
+                    class="mt-4 px-6 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-black transition flex items-center shadow-lg shadow-slate-200">
+                    <i class="fas fa-times mr-2"></i> Cancelar
+                </button>
+                <button onclick="cerrarCaja()"
+                    class="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition flex items-center shadow-lg shadow-slate-200">
+                    <i class="fas fa-check mr-2"></i> Cerrar Caja
+                </button>
+            </div>
         </div>
     </div>
     <script>
@@ -309,14 +340,22 @@
             modal.classList.remove('hidden');
         }
 
+
         function cerrarCaja() {
             const modal = document.getElementById('cerrarcajamodal');
-            const content = document.getElementById('cerrarcajacontent');
             modal.classList.remove('hidden');
-            void modal.offsetWidth;
-            modal.classList.remove('opacity-0');
-            content.classList.remove('scale-95');
-            content.classList.add('scale-100');
+
+            document.getElementById('fechaactual').textContent = new Date().toLocaleString();
+
+            const total = ventas.reduce((acc, v) => acc + v.total, 0);
+            const methods = ventas.reduce((acc, v) => {
+                acc[v.method] = (acc[v.method] || 0) + v.total;
+                return acc;
+            }, {});
+
+            const methodLabels = { 'cash': 'Efectivo', 'izipay': 'Izipay', 'yape': 'Yape' };
+            document.getElementById('totalcaja').textContent = `S/ ${total.toFixed(2)}`;
+
         }
 
         function cerrarModalCerrarCaja() {
